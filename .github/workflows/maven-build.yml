@@ -8,22 +8,33 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+env:
+  JAVA_VERSION: 11                                    # set this to the Java version to use
+  AZURE_WEBAPP_NAME: 'webapp-33773'                   # set this to your application's name
+  AZURE_WEBAPP_PACKAGE_PATH: ${{ github.workspace }}  # set this to the path to your web app project
+  AZURE_WEBAPP_PUBLISH_PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}     # set GH repo secret with the publish profile of the web app
 
 jobs:
   build:
 
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        java: [ '8', '11', '17' ]
+    # strategy:
+    #   matrix:
+    #     java: [ '11' ]
 
     steps:
       - uses: actions/checkout@v2
-      - name: Set up JDK ${{matrix.java}}
+      - name: Set up JDK ${{env.JAVA_VERSION}}
         uses: actions/setup-java@v2
         with:
-          java-version: ${{matrix.java}}
+          java-version: ${{env.JAVA_VERSION}}
           distribution: 'adopt'
           cache: maven
       - name: Build with Maven Wrapper
-        run: ./mvnw -B package
+        run: ./mvnw package
+      - name: 'Deploy to Azure WebApp'
+        uses: azure/webapps-deploy@v2
+        with: 
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ env.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/target/*.jar'
